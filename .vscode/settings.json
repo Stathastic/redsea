@@ -1,0 +1,14 @@
+{
+    "r.rterm.linux": "/usr/local/bin/radian",
+    "r.bracketedPaste": true,
+    "r.lsp.debug": true,
+    "r.rterm.option": [
+        "--no-site-file"
+    ],
+    "r.rterm.mac": "/usr/local/bin/radian",
+    "r.rterm.windows": "/usr/local/bin/radian",
+    "files.associations": {
+        "*.Rmd": "rmd"
+    },
+    "r.plot.useHttpgd": true
+}
