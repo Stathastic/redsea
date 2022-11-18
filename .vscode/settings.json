@@ -10,5 +10,8 @@
     "files.associations": {
         "*.Rmd": "rmd"
     },
-    "r.plot.useHttpgd": true
+    "r.plot.useHttpgd": true,
+    
+    "python.pythonPath": "/usr/local/anaconda3/bin/python"
+    
 }
