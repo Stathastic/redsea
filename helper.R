@@ -20,14 +20,14 @@ visualize_frame_level<-function(value_2d,latitude=NULL,longitude=NULL,title="",n
 
 
   }
-  visualize_frame_raw(value_2d)
+  visualize_frame_raw(value_2d,latitude,longitude,title)
   contour(longitude, rev(latitude), value_2d, nlevels=nlevels,
           add = TRUE, col = "brown")
 
 }
 
 #plot a image
-visualize_frame_raw<- function(value_2d,lantitude=NULL,latidude=NULL,timestamp="",title="") { # create a function with the name my_function
+visualize_frame_raw<- function(value_2d,latitude=NULL,longitude=NULL,timestamp="",title="") { # create a function with the name my_function
   if(is.null(latitude)){
     longitude=seq(1,dim(value_2d)[1])
     latitude=seq(1,dim(value_2d)[2])
@@ -35,7 +35,7 @@ visualize_frame_raw<- function(value_2d,lantitude=NULL,latidude=NULL,timestamp="
 
   }
   image(longitude,rev(latitude),value_2d,xlab="longitude",ylab="latitude",col = rev(brewer.pal(10,"RdBu")))
-    
+  title(main = title, font.main = 4)
 }
 
 
@@ -166,3 +166,23 @@ reducer_trend_parallel<-function(T_array,dataType="Chl",thres_min_data_point){
       parallel_trend_linear_regression(array_list[x],dataType,thres_min_data_point)
   print(class(result))
 }
+
+
+
+visualize_frame_ggplot<- function(value_2d,latitude=NULL,longitude=NULL,timestamp="",title="") { # create a function with the name my_function
+  if(is.null(latitude)){
+    longitude=seq(1,dim(value_2d)[1])
+    latitude=seq(1,dim(value_2d)[2])
+
+
+  }
+  lonlat <- as.matrix(expand.grid(longitude,latitude))
+  xx<-as.vector(value_2d)
+  tmp_df01 <- data.frame(cbind(lonlat,xx))
+  names(tmp_df01)<- c("longitude","latitude","value")
+  ggplot(tmp_df01, aes(x = longitude, y = latitude, fill = value)) +
+  geom_tile()+
+    scale_fill_gradient(low="green", high="red")+
+  ggtitle(title)
+}
+

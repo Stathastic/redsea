@@ -1,3 +1,3 @@
 # redsea
 
-kaust红海
+kaust redsea
