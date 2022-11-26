@@ -2,6 +2,15 @@ library(ncdf4)
 library(ggplot2)
 library(lubridate)
 library(RColorBrewer)
+library(parallel) # 载入parallel包
+# load data
+library(INLA)
+library(zoo)
+library(car)
+library(hydroTSM)
+
+library(rjson)
+library(rray)
 
 # filter the outlier value with the simplist methods:
 # 
@@ -130,7 +139,7 @@ parallel_trend_linear_regression<-function(array,dataType,thres_min_data_point){
     y<-array[!is.na(array)]
     if (length(t)>thres_min_data_point){
         if (dataType=="Chl"){
-            model<-gam(y~t,family=Gamma(link = "log"),data=data) 
+            model<-gam(y~t|season+f(month,model="RW2"),family=Gamma(link = "log"),data=data) 
         }
         else if(dataType=="SST"){
             model<-gam(y~t,data=data) 
@@ -186,3 +195,74 @@ visualize_frame_ggplot<- function(value_2d,latitude=NULL,longitude=NULL,timestam
   ggtitle(title)
 }
 
+feature_extract_time<-function(timeIndex){
+    ## depends on hydroTSM package, which is used for time-series
+    if(!require("hydroTSM")){
+        install.packages("hydroTSM")
+    }
+    month<-strtoi(format(timeIndex, "%m"),base=10)
+    season<-recode(time2season(timeIndex,out.fmt = "seasons"),"'winter'=1; 'spring'=2; 'summer'=3; 'autumm'=4;")
+
+    return (list(month,season))
+}
+
+reducer_trend_seasonal<-function(T_array,date,agg_on="Season",thres_min_data_point=25){
+  ## extract the month and season information
+  
+
+  results<-list()
+  length_latitude<-dim(T_array)[2]
+  length_longitude<-dim(T_array)[1]
+  length_timestamp<-dim(T_array)[3]
+  raw_t=seq(1,length_timestamp)
+  ## create result matrix to score the coefficient,. the seasonal feature for the whole T_array, size is len(time)
+  if(agg_on=="Season"){
+    seasonal_feature<-unlist(feature_extract_time(date)[2])
+    result_matrix<-unlist(rep(list(NA),length_latitude*length_longitude*4))
+    dim(result_matrix)<-c(length_latitude,length_longitude,4)
+  }
+  else{
+    seasonal_feature<-unlist(feature_extract_time(date)[1])
+    result_matrix<-unlist(rep(list(NA),length_latitude*length_longitude*12))
+    dim(result_matrix)<-c(length_latitude,length_longitude,12)
+
+  }
+
+
+  ## two layer for
+  for(latitude_i in 1:length_latitude) {
+
+    for (longitude_i in 1:length_longitude){
+     
+      raw_y=T_array[longitude_i,latitude_i,1:length_timestamp]
+
+      t<-raw_t[!is.na(raw_y)]
+      y<-raw_y[!is.na(raw_y)]
+
+      seasonal<-seasonal_feature[!is.na(raw_y)]
+
+
+      ## for rw2, the unique value need be larger then 2
+      if (length(t)>thres_min_data_point & length(unique(seasonal))>2){
+
+        
+        data=data.frame(t,y,seasonal)
+
+
+
+        model<-inla(y~t+f(seasonal,model="rw2"),data=data,verbose=TRUE) 
+        results<-append(results,model$summary.random$season$mean)
+
+
+        ## store the result
+        result_df<-model$summary.random$seasonal
+
+        result_matrix[latitude_i,longitude_i,result_df$ID]=result_df$mean
+
+
+      }
+    }
+
+  }
+  return(result_matrix)
+}
